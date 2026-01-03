@@ -1,0 +1,135 @@
+# Workflow Baseline: Pull Request Validation
+# Reference implementation for PR CI validation workflows
+# This is a policy definition, not an executable workflow
+
+baseline_id: WF-BASELINE-001
+name: "Pull Request Validation Baseline"
+version: "1.0"
+status: "reference"
+enforcement_mode: "audit-only"
+
+description: |
+  Defines the minimum set of validation steps for pull request workflows.
+  This baseline establishes the policy structure without implementation details.
+
+scope:
+  trigger_events:
+    - pull_request
+    - pull_request_target
+  branch_filters:
+    - main
+    - master
+    - release/*
+    - develop
+
+# Policy-defined stages (not implementation)
+validation_stages:
+  
+  - stage_id: "pre-validation"
+    name: "Pre-Validation Checks"
+    description: "Initial validation before resource-intensive operations"
+    required: true
+    invariants:
+      - INV-008  # Secrets Detection Required
+      - INV-012  # Change Attribution Required
+    checks:
+      - check_id: "PR-001"
+        name: "Pull Request Metadata Validation"
+        description: "Verify PR has required metadata (title, description, labels)"
+      - check_id: "PR-002"
+        name: "Branch Naming Convention"
+        description: "Verify branch follows naming conventions"
+      - check_id: "PR-003"
+        name: "Secrets Scanning"
+        description: "Scan for hardcoded credentials or API keys"
+  
+  - stage_id: "code-quality"
+    name: "Code Quality Validation"
+    description: "Static analysis and code quality checks"
+    required: true
+    invariants:
+      - INV-005  # Static Analysis Baseline
+      - INV-006  # Test Coverage Threshold
+    checks:
+      - check_id: "CQ-001"
+        name: "Linting"
+        description: "Execute configured linters for affected languages"
+      - check_id: "CQ-002"
+        name: "Static Analysis"
+        description: "Run static code analysis tools"
+      - check_id: "CQ-003"
+        name: "Code Formatting"
+        description: "Verify code follows formatting standards"
+  
+  - stage_id: "security-scanning"
+    name: "Security Validation"
+    description: "Security-focused analysis"
+    required: true
+    invariants:
+      - INV-007  # Dependency Scanning Required
+      - INV-009  # SAST Integration Required
+    checks:
+      - check_id: "SEC-001"
+        name: "Dependency Vulnerability Scan"
+        description: "Check dependencies for known CVEs"
+      - check_id: "SEC-002"
+        name: "SAST"
+        description: "Static Application Security Testing"
+      - check_id: "SEC-003"
+        name: "License Compliance"
+        description: "Verify dependency licenses are compliant"
+  
+  - stage_id: "testing"
+    name: "Test Execution"
+    description: "Automated test suite execution"
+    required: true
+    invariants:
+      - INV-006  # Test Coverage Threshold
+    checks:
+      - check_id: "TEST-001"
+        name: "Unit Tests"
+        description: "Execute unit test suite"
+      - check_id: "TEST-002"
+        name: "Integration Tests"
+        description: "Execute integration test suite"
+      - check_id: "TEST-003"
+        name: "Coverage Analysis"
+        description: "Measure and report test coverage"
+
+# Outcome Requirements
+outcome_requirements:
+  blocking_failures:
+    - "Critical security findings"
+    - "Invariant violations (severity: critical)"
+    - "Test suite failures"
+  warning_conditions:
+    - "Invariant violations (severity: high)"
+    - "Coverage below threshold"
+    - "New linting warnings"
+  informational:
+    - "Dependency updates available"
+    - "Performance metrics"
+    - "Code complexity metrics"
+
+# Artifact Requirements
+required_artifacts:
+  - artifact_id: "test-results"
+    description: "Test execution results and coverage reports"
+    retention_days: 30
+  - artifact_id: "security-scan-results"
+    description: "Security scanning reports"
+    retention_days: 90
+  - artifact_id: "lint-results"
+    description: "Linting and static analysis results"
+    retention_days: 30
+
+# Compliance Notes
+compliance:
+  audit_trail_required: true
+  log_retention_days: 180
+  status_check_timeout_minutes: 60
+  
+metadata:
+  created: "2026-01-03"
+  classification: "governance-policy"
+  enforcement_level: "advisory"

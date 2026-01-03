@@ -1,0 +1,58 @@
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# Build artifacts
+dist/
+build/
+target/
+*.o
+*.pyc
+*.class
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+vendor/
+.bundle/
+
+# Environment files (should never contain secrets anyway)
+.env
+.env.local
+
+# Test outputs
+coverage/
+.coverage
+*.cover
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Documentation builds
+_build/
+.doctrees/
+
+# Package files
+*.egg-info/
+*.egg
+dist/
+wheels/
+
+# Local development
+/tmp/
+/.tmp/
