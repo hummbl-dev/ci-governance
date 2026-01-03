@@ -1,0 +1,146 @@
+# Base120 Invariant Registry v1.0 (FROZEN)
+# Read-only reference. Do not mutate.
+# Source of truth for CI governance invariants.
+
+version: "1.0"
+frozen: true
+last_updated: "2026-01-03"
+
+# Invariants define immutable CI/CD governance rules
+# These are reference standards, not enforcement directives
+invariants:
+  
+  # Build Integrity Invariants
+  - id: INV-001
+    category: build_integrity
+    name: "Reproducible Build Requirement"
+    description: "All builds must be reproducible given identical source and toolchain versions"
+    severity: critical
+    scope: ["build", "release"]
+    
+  - id: INV-002
+    category: build_integrity
+    name: "Hermetic Build Environment"
+    description: "Build processes must not depend on external state or network resources during compilation"
+    severity: high
+    scope: ["build"]
+    
+  # Artifact Integrity Invariants
+  - id: INV-003
+    category: artifact_integrity
+    name: "Artifact Signing Required"
+    description: "All release artifacts must be cryptographically signed"
+    severity: critical
+    scope: ["release", "artifact"]
+    
+  - id: INV-004
+    category: artifact_integrity
+    name: "Provenance Chain Required"
+    description: "All artifacts must maintain a verifiable provenance chain from source to deployment"
+    severity: critical
+    scope: ["artifact", "release", "deployment"]
+    
+  # Code Quality Invariants
+  - id: INV-005
+    category: code_quality
+    name: "Static Analysis Baseline"
+    description: "Code must pass configured static analysis checks without critical findings"
+    severity: high
+    scope: ["pr", "merge"]
+    
+  - id: INV-006
+    category: code_quality
+    name: "Test Coverage Threshold"
+    description: "Code changes must maintain minimum test coverage thresholds"
+    severity: medium
+    scope: ["pr", "merge"]
+    
+  # Security Invariants
+  - id: INV-007
+    category: security
+    name: "Dependency Scanning Required"
+    description: "All dependencies must be scanned for known vulnerabilities"
+    severity: critical
+    scope: ["pr", "build", "release"]
+    
+  - id: INV-008
+    category: security
+    name: "Secrets Detection Required"
+    description: "Code must be scanned for hardcoded secrets before merge"
+    severity: critical
+    scope: ["pr", "merge"]
+    
+  - id: INV-009
+    category: security
+    name: "SAST Integration Required"
+    description: "Static Application Security Testing must be performed on code changes"
+    severity: high
+    scope: ["pr", "merge"]
+    
+  # Access Control Invariants
+  - id: INV-010
+    category: access_control
+    name: "Branch Protection Required"
+    description: "Protected branches must enforce review and status check requirements"
+    severity: critical
+    scope: ["merge", "release"]
+    
+  - id: INV-011
+    category: access_control
+    name: "Approval Requirement"
+    description: "Changes to protected branches require explicit approval from authorized reviewers"
+    severity: critical
+    scope: ["merge"]
+    
+  # Audit Trail Invariants
+  - id: INV-012
+    category: audit
+    name: "Change Attribution Required"
+    description: "All changes must be attributable to verified user identities"
+    severity: critical
+    scope: ["pr", "merge", "release"]
+    
+  - id: INV-013
+    category: audit
+    name: "Workflow Execution Logs Required"
+    description: "All CI/CD workflow executions must produce complete audit logs"
+    severity: high
+    scope: ["build", "deployment", "release"]
+    
+  # Deployment Invariants
+  - id: INV-014
+    category: deployment
+    name: "Staged Deployment Required"
+    description: "Production deployments must pass through staging environments"
+    severity: high
+    scope: ["deployment"]
+    
+  - id: INV-015
+    category: deployment
+    name: "Rollback Capability Required"
+    description: "All deployments must support automated rollback procedures"
+    severity: high
+    scope: ["deployment"]
+
+# Severity Levels Definition
+severity_levels:
+  critical: "Violation prevents merge or release"
+  high: "Violation requires documented exception"
+  medium: "Violation triggers warning and review"
+  low: "Violation logged for tracking"
+
+# Scope Definitions
+scopes:
+  pr: "Applied during pull request validation"
+  merge: "Applied at merge-time to protected branches"
+  build: "Applied during build process"
+  release: "Applied during release preparation"
+  artifact: "Applied to artifact generation and storage"
+  deployment: "Applied during deployment operations"
+
+# Metadata
+metadata:
+  specification_version: "base120-v1.0"
+  schema_version: "1.0.0"
+  compatibility: "GitHub Actions, GitLab CI, Jenkins"
+  license: "Internal Use Only - Governance Reference"

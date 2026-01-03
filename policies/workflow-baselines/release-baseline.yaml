@@ -1,0 +1,166 @@
+# Workflow Baseline: Release Process
+# Reference implementation for release workflow policies
+# This is a policy definition, not an executable workflow
+
+baseline_id: WF-BASELINE-003
+name: "Release Process Baseline"
+version: "1.0"
+status: "reference"
+enforcement_mode: "audit-only"
+
+description: |
+  Defines the policy structure for release processes.
+  Establishes requirements for secure, auditable releases.
+
+scope:
+  trigger_events:
+    - release
+    - workflow_dispatch
+  branch_filters:
+    - main
+    - master
+    - release/*
+
+# Policy-defined stages
+release_stages:
+  
+  - stage_id: "pre-release-validation"
+    name: "Pre-Release Validation"
+    description: "Validation before release creation"
+    required: true
+    invariants:
+      - INV-003  # Artifact Signing Required
+      - INV-004  # Provenance Chain Required
+      - INV-010  # Branch Protection Required
+    checks:
+      - check_id: "REL-001"
+        name: "Version Validation"
+        description: "Verify version follows semantic versioning"
+      - check_id: "REL-002"
+        name: "Changelog Verification"
+        description: "Verify changelog is complete and accurate"
+      - check_id: "REL-003"
+        name: "Artifact Availability"
+        description: "Verify all required artifacts are available"
+      - check_id: "REL-004"
+        name: "Provenance Chain Verification"
+        description: "Verify artifact provenance from source to release"
+  
+  - stage_id: "security-validation"
+    name: "Release Security Validation"
+    description: "Security checks for release artifacts"
+    required: true
+    invariants:
+      - INV-007  # Dependency Scanning Required
+      - INV-009  # SAST Integration Required
+    checks:
+      - check_id: "REL-101"
+        name: "Vulnerability Scan"
+        description: "Scan release artifacts for vulnerabilities"
+      - check_id: "REL-102"
+        name: "License Compliance Verification"
+        description: "Verify all dependencies are license-compliant"
+      - check_id: "REL-103"
+        name: "SBOM Validation"
+        description: "Validate Software Bill of Materials completeness"
+  
+  - stage_id: "release-approval"
+    name: "Release Approval Gate"
+    description: "Human approval checkpoint for releases"
+    required: true
+    invariants:
+      - INV-011  # Approval Requirement
+      - INV-012  # Change Attribution Required
+    checks:
+      - check_id: "REL-201"
+        name: "Approval Gate"
+        description: "Require explicit approval from authorized personnel"
+      - check_id: "REL-202"
+        name: "Release Notes Review"
+        description: "Verify release notes are complete"
+  
+  - stage_id: "release-publication"
+    name: "Release Publication"
+    description: "Publishing and distribution of release"
+    required: true
+    invariants:
+      - INV-013  # Workflow Execution Logs Required
+    checks:
+      - check_id: "REL-301"
+        name: "Artifact Publication"
+        description: "Publish signed artifacts to distribution channels"
+      - check_id: "REL-302"
+        name: "Release Tagging"
+        description: "Create and sign git release tag"
+      - check_id: "REL-303"
+        name: "Notification Distribution"
+        description: "Distribute release notifications to stakeholders"
+
+# Release Policy
+release_policy:
+  approval_required: true
+  signing_required: true
+  provenance_required: true
+  
+  release_types:
+    - type: "major"
+      approval_count: 2
+      security_scan: "comprehensive"
+    - type: "minor"
+      approval_count: 1
+      security_scan: "standard"
+    - type: "patch"
+      approval_count: 1
+      security_scan: "standard"
+    - type: "hotfix"
+      approval_count: 1
+      security_scan: "critical-only"
+      expedited: true
+
+# Artifact Requirements
+artifact_requirements:
+  signature_verification: "mandatory"
+  provenance_attestation: "mandatory"
+  sbom_inclusion: "mandatory"
+  
+  distribution_channels:
+    - channel: "primary"
+      verification_required: true
+      audit_logging: true
+    - channel: "mirror"
+      verification_required: true
+      audit_logging: true
+
+# Rollback Policy
+rollback_policy:
+  rollback_capability_required: true
+  rollback_testing_required: true
+  rollback_documentation_required: true
+
+# Compliance Requirements
+compliance:
+  audit_trail_required: true
+  release_logs_retention_days: 2555  # 7 years
+  approval_records_retention_days: 2555
+  artifact_retention: "permanent"
+
+# Required Outputs
+required_outputs:
+  - output_id: "release-artifacts"
+    description: "Signed release artifacts"
+    signed: true
+    provenance: true
+  - output_id: "release-notes"
+    description: "Release notes and changelog"
+    format: "markdown"
+  - output_id: "approval-record"
+    description: "Release approval audit record"
+    retention_days: 2555
+  - output_id: "sbom"
+    description: "Software Bill of Materials for release"
+    format: "SPDX or CycloneDX"
+
+metadata:
+  created: "2026-01-03"
+  classification: "governance-policy"
+  enforcement_level: "advisory"

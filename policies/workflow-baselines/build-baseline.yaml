@@ -1,0 +1,138 @@
+# Workflow Baseline: Build and Artifact Generation
+# Reference implementation for build workflow policies
+# This is a policy definition, not an executable workflow
+
+baseline_id: WF-BASELINE-002
+name: "Build and Artifact Baseline"
+version: "1.0"
+status: "reference"
+enforcement_mode: "audit-only"
+
+description: |
+  Defines the policy structure for build processes and artifact generation.
+  Establishes requirements for reproducible, secure builds.
+
+scope:
+  trigger_events:
+    - push
+    - workflow_dispatch
+    - release
+  branch_filters:
+    - main
+    - master
+    - release/*
+
+# Policy-defined stages
+build_stages:
+  
+  - stage_id: "pre-build"
+    name: "Pre-Build Validation"
+    description: "Validation before build execution"
+    required: true
+    invariants:
+      - INV-001  # Reproducible Build Requirement
+      - INV-007  # Dependency Scanning Required
+    checks:
+      - check_id: "BUILD-001"
+        name: "Environment Validation"
+        description: "Verify build environment meets requirements"
+      - check_id: "BUILD-002"
+        name: "Dependency Resolution"
+        description: "Resolve and validate all build dependencies"
+      - check_id: "BUILD-003"
+        name: "Cache Validation"
+        description: "Validate build cache integrity if used"
+  
+  - stage_id: "build-execution"
+    name: "Build Execution"
+    description: "Core build process"
+    required: true
+    invariants:
+      - INV-001  # Reproducible Build Requirement
+      - INV-002  # Hermetic Build Environment
+    checks:
+      - check_id: "BUILD-101"
+        name: "Compilation"
+        description: "Compile source code to artifacts"
+      - check_id: "BUILD-102"
+        name: "Build Reproducibility Check"
+        description: "Verify build produces consistent outputs"
+      - check_id: "BUILD-103"
+        name: "Resource Isolation"
+        description: "Verify build operates in isolated environment"
+  
+  - stage_id: "post-build"
+    name: "Post-Build Validation"
+    description: "Artifact validation and preparation"
+    required: true
+    invariants:
+      - INV-003  # Artifact Signing Required
+      - INV-004  # Provenance Chain Required
+    checks:
+      - check_id: "BUILD-201"
+        name: "Artifact Integrity Check"
+        description: "Verify generated artifacts are valid"
+      - check_id: "BUILD-202"
+        name: "Artifact Signing"
+        description: "Cryptographically sign artifacts"
+      - check_id: "BUILD-203"
+        name: "Provenance Generation"
+        description: "Generate SLSA provenance attestation"
+      - check_id: "BUILD-204"
+        name: "SBOM Generation"
+        description: "Generate Software Bill of Materials"
+
+# Artifact Policy
+artifact_policy:
+  signing_required: true
+  provenance_required: true
+  sbom_required: true
+  
+  artifact_types:
+    - type: "binary"
+      signing: "mandatory"
+      checksum_algorithms: ["sha256", "sha512"]
+    - type: "container"
+      signing: "mandatory"
+      scanning_required: true
+    - type: "package"
+      signing: "mandatory"
+      metadata_required: true
+
+# Build Environment Requirements
+environment_requirements:
+  isolation_level: "hermetic"
+  network_access: "restricted"
+  toolchain_versioning: "pinned"
+  
+  prohibited_operations:
+    - "Access to external registries during build"
+    - "Dependency resolution from unpinned sources"
+    - "Use of system-installed dependencies"
+
+# Compliance Requirements
+compliance:
+  audit_trail_required: true
+  build_logs_retention_days: 365
+  artifact_retention_policy: "per-artifact-type"
+  reproducibility_verification: "required"
+
+# Required Artifacts
+required_outputs:
+  - output_id: "build-artifacts"
+    description: "Compiled binaries or packages"
+    signed: true
+  - output_id: "provenance-attestation"
+    description: "SLSA provenance document"
+    format: "in-toto"
+  - output_id: "sbom"
+    description: "Software Bill of Materials"
+    format: "SPDX or CycloneDX"
+  - output_id: "build-log"
+    description: "Complete build execution log"
+    retention_days: 365
+
+metadata:
+  created: "2026-01-03"
+  classification: "governance-policy"
+  enforcement_level: "advisory"

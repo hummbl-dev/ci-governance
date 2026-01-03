@@ -1,0 +1,336 @@
+# CI Governance Policy Schema v1.0
+
+version: "1.0.0"
+description: |
+  Defines the schema structure for CI governance policies.
+  This schema is for documentation and validation purposes only.
+
+# Base120 Invariant Registry Schema
+invariant_registry_schema:
+  type: "object"
+  required_fields:
+    - version
+    - frozen
+    - invariants
+  
+  fields:
+    version:
+      type: "string"
+      description: "Registry version identifier"
+      format: "semver"
+    
+    frozen:
+      type: "boolean"
+      description: "Indicates if registry is immutable"
+    
+    invariants:
+      type: "array"
+      description: "List of governance invariants"
+      items:
+        type: "object"
+        required_fields:
+          - id
+          - category
+          - name
+          - description
+          - severity
+          - scope
+        fields:
+          id:
+            type: "string"
+            description: "Unique invariant identifier"
+            pattern: "^INV-[0-9]{3,}$"
+          
+          category:
+            type: "string"
+            description: "Invariant category"
+            enum:
+              - build_integrity
+              - artifact_integrity
+              - code_quality
+              - security
+              - access_control
+              - audit
+              - deployment
+          
+          name:
+            type: "string"
+            description: "Human-readable invariant name"
+          
+          description:
+            type: "string"
+            description: "Detailed invariant description"
+          
+          severity:
+            type: "string"
+            description: "Impact severity level"
+            enum:
+              - critical
+              - high
+              - medium
+              - low
+          
+          scope:
+            type: "array"
+            description: "Applicable scopes"
+            items:
+              type: "string"
+              enum:
+                - pr
+                - merge
+                - build
+                - release
+                - artifact
+                - deployment
+
+# Workflow Baseline Schema
+workflow_baseline_schema:
+  type: "object"
+  required_fields:
+    - baseline_id
+    - name
+    - version
+    - status
+    - enforcement_mode
+  
+  fields:
+    baseline_id:
+      type: "string"
+      description: "Unique baseline identifier"
+      pattern: "^WF-BASELINE-[0-9]{3,}$"
+    
+    name:
+      type: "string"
+      description: "Baseline name"
+    
+    version:
+      type: "string"
+      description: "Baseline version"
+      format: "semver"
+    
+    status:
+      type: "string"
+      description: "Baseline status"
+      enum:
+        - reference
+        - active
+        - deprecated
+    
+    enforcement_mode:
+      type: "string"
+      description: "How baseline is applied"
+      enum:
+        - audit-only
+        - advisory
+        - enforcing
+        - blocking
+    
+    scope:
+      type: "object"
+      description: "Baseline applicability scope"
+      fields:
+        trigger_events:
+          type: "array"
+          items:
+            type: "string"
+        branch_filters:
+          type: "array"
+          items:
+            type: "string"
+    
+    stages:
+      type: "array"
+      description: "Validation stages"
+      items:
+        type: "object"
+        required_fields:
+          - stage_id
+          - name
+          - required
+        fields:
+          stage_id:
+            type: "string"
+            description: "Stage identifier"
+          
+          name:
+            type: "string"
+            description: "Stage name"
+          
+          description:
+            type: "string"
+            description: "Stage description"
+          
+          required:
+            type: "boolean"
+            description: "Whether stage is mandatory"
+          
+          invariants:
+            type: "array"
+            description: "Referenced invariant IDs"
+            items:
+              type: "string"
+              pattern: "^INV-[0-9]{3,}$"
+          
+          checks:
+            type: "array"
+            description: "Checks to perform in stage"
+            items:
+              type: "object"
+              required_fields:
+                - check_id
+                - name
+                - description
+
+# PR Classification Schema
+pr_classification_schema:
+  type: "object"
+  required_fields:
+    - classification_version
+    - classification_dimensions
+  
+  fields:
+    classification_version:
+      type: "string"
+      description: "Classification schema version"
+    
+    classification_dimensions:
+      type: "array"
+      description: "Dimensions for classifying PRs"
+      items:
+        type: "object"
+        required_fields:
+          - dimension
+          - name
+          - categories
+        fields:
+          dimension:
+            type: "string"
+            description: "Dimension identifier"
+          
+          name:
+            type: "string"
+            description: "Human-readable dimension name"
+          
+          description:
+            type: "string"
+            description: "Dimension description"
+          
+          categories:
+            type: "array"
+            description: "Categories within dimension"
+            items:
+              type: "object"
+              required_fields:
+                - category_id
+                - name
+                - description
+              fields:
+                category_id:
+                  type: "string"
+                  description: "Category identifier"
+                
+                name:
+                  type: "string"
+                  description: "Category name"
+                
+                criteria:
+                  type: "object"
+                  description: "Classification criteria"
+                
+                workflow_baseline:
+                  type: "array"
+                  description: "Applicable baseline IDs"
+                  items:
+                    type: "string"
+    
+    classification_rules:
+      type: "array"
+      description: "Automated classification rules"
+      items:
+        type: "object"
+        required_fields:
+          - rule_id
+          - name
+          - condition
+          - classification
+        fields:
+          rule_id:
+            type: "string"
+            description: "Rule identifier"
+            pattern: "^RULE-[0-9]{3,}$"
+          
+          name:
+            type: "string"
+            description: "Rule name"
+          
+          description:
+            type: "string"
+            description: "Rule description"
+          
+          condition:
+            type: "object"
+            description: "Rule trigger conditions"
+          
+          classification:
+            type: "object"
+            description: "Classifications to apply"
+
+# Policy Metadata Schema
+policy_metadata_schema:
+  fields:
+    created:
+      type: "string"
+      format: "date"
+      description: "Policy creation date"
+    
+    classification:
+      type: "string"
+      enum:
+        - governance-policy
+        - enforcement-policy
+        - reference-policy
+      description: "Policy type classification"
+    
+    enforcement_level:
+      type: "string"
+      enum:
+        - advisory
+        - warning
+        - blocking
+      description: "Enforcement level"
+
+# Validation Rules
+validation_rules:
+  - rule: "All invariant IDs referenced in baselines must exist in registry"
+    severity: "error"
+  
+  - rule: "Baseline IDs must be unique across all baselines"
+    severity: "error"
+  
+  - rule: "Classification rules must reference valid dimensions"
+    severity: "error"
+  
+  - rule: "Frozen registries cannot be modified"
+    severity: "error"
+  
+  - rule: "Severity levels must match defined levels"
+    severity: "error"
+
+# Extension Points
+extension_points:
+  - name: "custom_invariants"
+    description: "Organizations can define additional invariants"
+    extends: "invariant_registry_schema.invariants"
+  
+  - name: "custom_baselines"
+    description: "Organizations can define additional workflow baselines"
+    extends: "workflow_baseline_schema"
+  
+  - name: "custom_classifications"
+    description: "Organizations can define additional classification dimensions"
+    extends: "pr_classification_schema.classification_dimensions"
+
+metadata:
+  schema_version: "1.0.0"
+  created: "2026-01-03"
+  compatibility: "Base120 v1.0"

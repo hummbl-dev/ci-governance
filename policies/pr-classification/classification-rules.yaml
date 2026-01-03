@@ -1,0 +1,256 @@
+# Pull Request Classification Rules
+# Defines classification criteria for pull requests
+# This is a policy definition for governance, not an enforcement mechanism
+
+classification_version: "1.0"
+status: "reference"
+enforcement_mode: "audit-only"
+
+description: |
+  Defines how pull requests are classified based on characteristics.
+  Classifications determine which workflow baselines and invariants apply.
+  This is a policy structure, not an implementation.
+
+# Classification Dimensions
+classification_dimensions:
+  
+  - dimension: "impact_scope"
+    name: "Impact Scope Classification"
+    description: "Classifies PRs by the scope of changes"
+    categories:
+      
+      - category_id: "critical"
+        name: "Critical Infrastructure"
+        description: "Changes to core infrastructure or security-sensitive components"
+        criteria:
+          paths:
+            - "security/**"
+            - "auth/**"
+            - "crypto/**"
+            - "infrastructure/**"
+            - ".github/workflows/**"
+          keywords:
+            - "security"
+            - "authentication"
+            - "authorization"
+            - "encryption"
+        workflow_baseline: ["WF-BASELINE-001", "WF-BASELINE-002", "WF-BASELINE-003"]
+        required_reviewers: 2
+        additional_invariants: ["INV-007", "INV-008", "INV-009"]
+      
+      - category_id: "standard"
+        name: "Standard Changes"
+        description: "Regular code changes with normal risk profile"
+        criteria:
+          paths:
+            - "src/**"
+            - "lib/**"
+            - "pkg/**"
+          keywords:
+            - "feature"
+            - "bugfix"
+            - "refactor"
+        workflow_baseline: ["WF-BASELINE-001"]
+        required_reviewers: 1
+        additional_invariants: []
+      
+      - category_id: "documentation"
+        name: "Documentation Only"
+        description: "Changes limited to documentation files"
+        criteria:
+          paths:
+            - "docs/**"
+            - "*.md"
+            - "*.txt"
+          exclusions:
+            - "README.md"  # README may require more scrutiny
+        workflow_baseline: []  # Minimal checks
+        required_reviewers: 1
+        additional_invariants: []
+      
+      - category_id: "configuration"
+        name: "Configuration Changes"
+        description: "Changes to configuration files"
+        criteria:
+          paths:
+            - "config/**"
+            - "*.yaml"
+            - "*.yml"
+            - "*.json"
+            - "*.toml"
+        workflow_baseline: ["WF-BASELINE-001"]
+        required_reviewers: 1
+        additional_invariants: ["INV-008"]  # Secrets detection critical
+  
+  - dimension: "change_size"
+    name: "Change Size Classification"
+    description: "Classifies PRs by the volume of changes"
+    categories:
+      
+      - category_id: "small"
+        name: "Small Change"
+        description: "Limited scope change"
+        criteria:
+          lines_changed_max: 100
+          files_changed_max: 5
+        review_complexity: "low"
+        approval_threshold: 1
+      
+      - category_id: "medium"
+        name: "Medium Change"
+        description: "Moderate scope change"
+        criteria:
+          lines_changed_min: 101
+          lines_changed_max: 500
+          files_changed_max: 20
+        review_complexity: "medium"
+        approval_threshold: 1
+      
+      - category_id: "large"
+        name: "Large Change"
+        description: "Extensive change requiring detailed review"
+        criteria:
+          lines_changed_min: 501
+          files_changed_max: 50
+        review_complexity: "high"
+        approval_threshold: 2
+      
+      - category_id: "massive"
+        name: "Massive Change"
+        description: "Very large change, consider breaking down"
+        criteria:
+          lines_changed_min: 1000
+        review_complexity: "very-high"
+        approval_threshold: 2
+        recommendation: "Consider breaking into smaller PRs"
+  
+  - dimension: "risk_level"
+    name: "Risk Level Classification"
+    description: "Classifies PRs by associated risk"
+    categories:
+      
+      - category_id: "high-risk"
+        name: "High Risk"
+        description: "Changes with high risk of impact"
+        criteria:
+          indicators:
+            - "Database schema changes"
+            - "API contract modifications"
+            - "Security component changes"
+            - "Third-party dependency updates (major versions)"
+            - "Build system modifications"
+        workflow_baseline: ["WF-BASELINE-001", "WF-BASELINE-002"]
+        additional_checks:
+          - "Regression testing required"
+          - "Staging deployment required"
+          - "Rollback plan required"
+      
+      - category_id: "medium-risk"
+        name: "Medium Risk"
+        description: "Changes with moderate risk"
+        criteria:
+          indicators:
+            - "Business logic changes"
+            - "Third-party dependency updates (minor versions)"
+            - "Configuration changes"
+        workflow_baseline: ["WF-BASELINE-001"]
+        additional_checks:
+          - "Integration testing required"
+      
+      - category_id: "low-risk"
+        name: "Low Risk"
+        description: "Changes with minimal risk"
+        criteria:
+          indicators:
+            - "Documentation updates"
+            - "Comment additions"
+            - "Formatting changes"
+            - "Test additions (no logic changes)"
+        workflow_baseline: []
+        additional_checks: []
+
+# Classification Rules
+classification_rules:
+  
+  - rule_id: "RULE-001"
+    name: "Dependency Update Classification"
+    description: "Classify dependency updates by version change type"
+    condition:
+      file_patterns:
+        - "package.json"
+        - "package-lock.json"
+        - "requirements.txt"
+        - "Gemfile.lock"
+        - "go.mod"
+        - "Cargo.toml"
+    classification:
+      major_version_bump: "high-risk"
+      minor_version_bump: "medium-risk"
+      patch_version_bump: "low-risk"
+  
+  - rule_id: "RULE-002"
+    name: "Security File Classification"
+    description: "Automatically classify security-related changes as critical"
+    condition:
+      file_patterns:
+        - "security/**"
+        - "**/*auth*.{js,py,go,java}"
+        - "**/*crypto*.{js,py,go,java}"
+    classification:
+      impact_scope: "critical"
+      risk_level: "high-risk"
+  
+  - rule_id: "RULE-003"
+    name: "CI/CD Workflow Classification"
+    description: "Classify CI/CD configuration changes"
+    condition:
+      file_patterns:
+        - ".github/workflows/**"
+        - ".gitlab-ci.yml"
+        - "Jenkinsfile"
+    classification:
+      impact_scope: "critical"
+      risk_level: "high-risk"
+      additional_requirement: "Dry-run verification required"
+  
+  - rule_id: "RULE-004"
+    name: "Documentation-Only Classification"
+    description: "Classify pure documentation changes"
+    condition:
+      only_file_patterns:
+        - "docs/**"
+        - "*.md"
+      exclude_patterns:
+        - "README.md"
+    classification:
+      impact_scope: "documentation"
+      risk_level: "low-risk"
+
+# Auto-Labeling Policy (reference only)
+auto_labeling_policy:
+  enabled: false  # Policy definition only, not implementation
+  
+  labels:
+    - label: "scope:critical"
+      condition: "impact_scope == critical"
+    - label: "scope:standard"
+      condition: "impact_scope == standard"
+    - label: "size:large"
+      condition: "change_size >= medium"
+    - label: "risk:high"
+      condition: "risk_level == high-risk"
+    - label: "security"
+      condition: "touches security-sensitive files"
+    - label: "dependencies"
+      condition: "modifies dependency manifests"
+
+# Compliance Metadata
+compliance:
+  classification_audit_required: true
+  classification_override_requires_justification: true
+  misclassification_review_period_days: 90
+
+metadata:
+  created: "2026-01-03"
+  classification: "governance-policy"
+  enforcement_level: "advisory"
