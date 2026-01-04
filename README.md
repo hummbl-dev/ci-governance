@@ -6,13 +6,37 @@ This repository serves as the **enforcement kernel** for CI/CD governance polici
 
 **Role**: Policy definition and audit framework  
 **Status**: Reference implementation  
-**Base120 Version**: v1.0 (FROZEN)
+**Base120 Version**: v1.0 (FROZEN)  
+**Base120 Binding**: ✓ ACTIVE (Hash-pinned, CI-enforced)
+
+## Base120 v1.0 Binding
+
+This repository is **built on Base120 v1.0** as immutable infrastructure:
+
+- **SHA256**: `6df3bd9f64693183ed2509e2ca6855a5690c721646e2357b088c3bd4d2cd88b1`
+- **Status**: Immutable, frozen, hash-pinned
+- **Enforcement**: Automated CI verification on every commit
+- **Compliance**: Non-canonical, audit-grade
+
+**Key Files**:
+- `base120-dependency.yaml` - Dependency declaration with hash pinning
+- `base120-mrcc.yaml` - Machine-readable compliance claim
+- `base120-narrative-claim.md` - Narrative compliance documentation
+- `.github/workflows/base120-*.yml` - CI enforcement workflows
+
+**Documentation**:
+- `ARCHITECTURE.md` - Technical architecture and binding design
+- `_CURRENT_STATE.md` - Current binding status and verification results
+- `GOVERNANCE.md` - Governance model including Base120 enforcement
 
 ## Repository Structure
 
 ```
 ci-governance/
-├── base120-invariant-registry.yaml    # Read-only invariant definitions
+├── base120-invariant-registry.yaml    # Read-only invariant definitions (FROZEN)
+├── base120-dependency.yaml            # Base120 v1.0 binding declaration
+├── base120-mrcc.yaml                  # Machine-readable compliance claim
+├── base120-narrative-claim.md         # Narrative compliance claim
 ├── policies/
 │   ├── workflow-baselines/            # Workflow policy baselines
 │   │   ├── pr-validation-baseline.yaml
@@ -22,7 +46,14 @@ ci-governance/
 │       └── classification-rules.yaml
 ├── schemas/
 │   └── policy-schema.yaml             # Policy structure schemas
-└── README.md
+├── .github/workflows/                 # CI enforcement
+│   ├── base120-hash-verification.yml
+│   ├── base120-schema-validation.yml
+│   └── base120-drift-detection.yml
+├── ARCHITECTURE.md                    # Architecture documentation
+├── _CURRENT_STATE.md                  # Current state tracking
+├── GOVERNANCE.md                      # Governance model
+└── README.md                          # This file
 ```
 
 ## Components

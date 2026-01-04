@@ -1,0 +1,199 @@
+name: Base120 Drift Detection
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+  schedule:
+    # Run daily at 00:00 UTC for continuous monitoring
+    - cron: '0 0 * * *'
+
+jobs:
+  detect-base120-drift:
+    name: Detect Base120 Invariant Drift
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for drift analysis
+          
+      - name: Load baseline configuration
+        id: load-baseline
+        run: |
+          BASELINE_HASH=$(grep "sha256:" base120-dependency.yaml | awk '{print $2}' | tr -d '"')
+          BASELINE_VERSION=$(grep "version:" base120-dependency.yaml | head -1 | awk '{print $2}' | tr -d '"')
+          
+          echo "baseline_hash=${BASELINE_HASH}" >> $GITHUB_OUTPUT
+          echo "baseline_version=${BASELINE_VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "Baseline configuration:"
+          echo "  Version: ${BASELINE_VERSION}"
+          echo "  Hash: ${BASELINE_HASH}"
+          
+      - name: Calculate current state
+        id: current-state
+        run: |
+          CURRENT_HASH=$(sha256sum base120-invariant-registry.yaml | awk '{print $1}')
+          CURRENT_VERSION=$(grep "^version:" base120-invariant-registry.yaml | awk '{print $2}' | tr -d '"')
+          CURRENT_FROZEN=$(grep "^frozen:" base120-invariant-registry.yaml | awk '{print $2}')
+          
+          echo "current_hash=${CURRENT_HASH}" >> $GITHUB_OUTPUT
+          echo "current_version=${CURRENT_VERSION}" >> $GITHUB_OUTPUT
+          echo "current_frozen=${CURRENT_FROZEN}" >> $GITHUB_OUTPUT
+          
+          echo "Current state:"
+          echo "  Version: ${CURRENT_VERSION}"
+          echo "  Hash: ${CURRENT_HASH}"
+          echo "  Frozen: ${CURRENT_FROZEN}"
+          
+      - name: Detect hash drift
+        id: hash-drift
+        run: |
+          BASELINE="${{ steps.load-baseline.outputs.baseline_hash }}"
+          CURRENT="${{ steps.current-state.outputs.current_hash }}"
+          
+          if [ "${BASELINE}" != "${CURRENT}" ]; then
+            echo "drift_detected=true" >> $GITHUB_OUTPUT
+            echo "❌ HASH DRIFT DETECTED"
+            echo "Failure Code: BASE120-DRIFT-003"
+            echo ""
+            echo "The Base120 registry has drifted from the baseline!"
+            echo "Baseline: ${BASELINE}"
+            echo "Current:  ${CURRENT}"
+          else
+            echo "drift_detected=false" >> $GITHUB_OUTPUT
+            echo "✓ No hash drift detected"
+          fi
+          
+      - name: Detect version drift
+        id: version-drift
+        run: |
+          BASELINE="${{ steps.load-baseline.outputs.baseline_version }}"
+          CURRENT="${{ steps.current-state.outputs.current_version }}"
+          
+          if [ "${BASELINE}" != "${CURRENT}" ]; then
+            echo "version_drift=true" >> $GITHUB_OUTPUT
+            echo "❌ VERSION DRIFT DETECTED"
+            echo "Failure Code: BASE120-DRIFT-003"
+            echo ""
+            echo "Version has changed!"
+            echo "Baseline: ${BASELINE}"
+            echo "Current:  ${CURRENT}"
+          else
+            echo "version_drift=false" >> $GITHUB_OUTPUT
+            echo "✓ No version drift detected"
+          fi
+          
+      - name: Check for unauthorized modifications
+        id: check-modifications
+        run: |
+          # Check if base120-invariant-registry.yaml was modified in recent commits
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q "base120-invariant-registry.yaml"; then
+            echo "modification_detected=true" >> $GITHUB_OUTPUT
+            echo "⚠️  Base120 registry was modified in last commit"
+            echo "Commit: $(git log -1 --oneline HEAD)"
+          else
+            echo "modification_detected=false" >> $GITHUB_OUTPUT
+            echo "✓ No recent modifications to Base120 registry"
+          fi
+          
+      - name: Analyze invariant count drift
+        id: invariant-count
+        run: |
+          python3 - <<'EOF'
+          import yaml
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          current_count = len(data.get('invariants', []))
+          expected_count = 15  # Base120 v1.0 has 15 invariants
+          
+          print(f"Invariant count: {current_count}")
+          print(f"Expected count: {expected_count}")
+          
+          if current_count != expected_count:
+              print("")
+              print("❌ INVARIANT COUNT DRIFT")
+              print("Failure Code: BASE120-DRIFT-003")
+              print(f"Expected {expected_count} invariants, found {current_count}")
+              exit(1)
+          else:
+              print("✓ Invariant count matches expected")
+          EOF
+          
+      - name: Verify invariant IDs are unchanged
+        id: invariant-ids
+        run: |
+          python3 - <<'EOF'
+          import yaml
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          expected_ids = [
+              'INV-001', 'INV-002', 'INV-003', 'INV-004', 'INV-005',
+              'INV-006', 'INV-007', 'INV-008', 'INV-009', 'INV-010',
+              'INV-011', 'INV-012', 'INV-013', 'INV-014', 'INV-015'
+          ]
+          
+          current_ids = [inv['id'] for inv in data.get('invariants', [])]
+          
+          missing_ids = set(expected_ids) - set(current_ids)
+          extra_ids = set(current_ids) - set(expected_ids)
+          
+          errors = []
+          
+          if missing_ids:
+              errors.append(f"Missing invariant IDs: {', '.join(sorted(missing_ids))}")
+          
+          if extra_ids:
+              errors.append(f"Unexpected invariant IDs: {', '.join(sorted(extra_ids))}")
+          
+          if errors:
+              print("❌ INVARIANT ID DRIFT DETECTED")
+              print("Failure Code: BASE120-DRIFT-003")
+              for error in errors:
+                  print(f"  - {error}")
+              exit(1)
+          else:
+              print("✓ All expected invariant IDs present")
+          EOF
+          
+      - name: Fail on drift detection
+        if: steps.hash-drift.outputs.drift_detected == 'true' || steps.version-drift.outputs.version_drift == 'true'
+        run: |
+          echo "================================================"
+          echo "❌ DRIFT DETECTION FAILED"
+          echo "================================================"
+          echo "Failure Code: BASE120-DRIFT-003"
+          echo ""
+          echo "Base120 v1.0 drift has been detected!"
+          echo "The registry has diverged from the immutable baseline."
+          echo ""
+          echo "Required actions:"
+          echo "1. Revert all changes to base120-invariant-registry.yaml"
+          echo "2. Restore file to baseline state"
+          echo "3. Base120 v1.0 is FROZEN and immutable"
+          echo "4. For updates, propose a new major version"
+          echo ""
+          echo "Baseline hash: ${{ steps.load-baseline.outputs.baseline_hash }}"
+          echo "Current hash:  ${{ steps.current-state.outputs.current_hash }}"
+          echo "================================================"
+          exit 1
+          
+      - name: Report drift detection success
+        run: |
+          echo "================================================"
+          echo "✓ Base120 v1.0 Drift Detection: PASSED"
+          echo "================================================"
+          echo "Registry: base120-invariant-registry.yaml"
+          echo "Baseline: ${{ steps.load-baseline.outputs.baseline_hash }}"
+          echo "Current:  ${{ steps.current-state.outputs.current_hash }}"
+          echo "Status: NO DRIFT DETECTED"
+          echo "Immutability: CONFIRMED"
+          echo "================================================"

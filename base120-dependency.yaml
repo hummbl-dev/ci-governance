@@ -1,0 +1,57 @@
+# Base120 Dependency Declaration
+# Pins Base120 v1.0 as immutable infrastructure
+# Read-only, audit-grade binding
+
+dependency:
+  name: "Base120 Invariant Registry"
+  version: "1.0"
+  status: "immutable"
+  binding_type: "read-only"
+  
+  # File reference
+  file: "base120-invariant-registry.yaml"
+  
+  # SHA256 integrity hash (pinned)
+  sha256: "6df3bd9f64693183ed2509e2ca6855a5690c721646e2357b088c3bd4d2cd88b1"
+  
+  # Version metadata
+  specification_version: "base120-v1.0"
+  schema_version: "1.0.0"
+  frozen: true
+  last_updated: "2026-01-03"
+
+# Binding constraints
+constraints:
+  mutation_allowed: false
+  version_upgrade_allowed: false
+  schema_modification_allowed: false
+  invariant_addition_allowed: false
+  invariant_removal_allowed: false
+  
+enforcement:
+  hash_verification: "mandatory"
+  schema_validation: "mandatory"
+  drift_detection: "mandatory"
+  failure_mode: "blocking"
+
+# Audit trail
+binding_metadata:
+  bound_at: "2026-01-03T23:27:00Z"
+  bound_by: "ci-governance-system"
+  binding_purpose: "Establish immutable governance infrastructure"
+  compliance_level: "audit-grade"
+  
+# Verification requirements
+verification:
+  pre_commit_hash_check: true
+  ci_hash_verification: true
+  periodic_drift_scan: true
+  drift_scan_frequency: "on_every_commit"
+  
+# Failure codes for CI
+failure_codes:
+  hash_mismatch: "BASE120-HASH-001"
+  schema_invalid: "BASE120-SCHEMA-002"
+  drift_detected: "BASE120-DRIFT-003"
+  file_missing: "BASE120-MISSING-004"
+  frozen_violation: "BASE120-FROZEN-005"

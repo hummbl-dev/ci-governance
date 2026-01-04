@@ -1,0 +1,208 @@
+name: Base120 Schema Validation
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  validate-base120-schema:
+    name: Validate Base120 Schema Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pip
+          pip3 install pyyaml jsonschema
+          
+      - name: Validate YAML syntax
+        id: yaml-syntax
+        run: |
+          echo "Validating YAML syntax..."
+          python3 - <<'EOF'
+          import yaml
+          import sys
+          
+          try:
+              with open('base120-invariant-registry.yaml', 'r') as f:
+                  data = yaml.safe_load(f)
+              print("✓ YAML syntax is valid")
+              sys.exit(0)
+          except yaml.YAMLError as e:
+              print("❌ YAML SYNTAX ERROR")
+              print("Failure Code: BASE120-SCHEMA-002")
+              print(f"Error: {e}")
+              sys.exit(1)
+          EOF
+          
+      - name: Validate required fields
+        id: validate-fields
+        run: |
+          echo "Validating required fields..."
+          python3 - <<'EOF'
+          import yaml
+          import sys
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          required_fields = ['version', 'frozen', 'invariants']
+          missing_fields = []
+          
+          for field in required_fields:
+              if field not in data:
+                  missing_fields.append(field)
+          
+          if missing_fields:
+              print("❌ REQUIRED FIELDS MISSING")
+              print("Failure Code: BASE120-SCHEMA-002")
+              print(f"Missing fields: {', '.join(missing_fields)}")
+              sys.exit(1)
+          
+          print("✓ All required fields present")
+          EOF
+          
+      - name: Validate invariant structure
+        id: validate-invariants
+        run: |
+          echo "Validating invariant structure..."
+          python3 - <<'EOF'
+          import yaml
+          import sys
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          invariants = data.get('invariants', [])
+          
+          if not isinstance(invariants, list):
+              print("❌ SCHEMA ERROR: invariants must be a list")
+              print("Failure Code: BASE120-SCHEMA-002")
+              sys.exit(1)
+          
+          required_inv_fields = ['id', 'category', 'name', 'description', 'severity', 'scope']
+          valid_categories = ['build_integrity', 'artifact_integrity', 'code_quality', 
+                             'security', 'access_control', 'audit', 'deployment']
+          valid_severities = ['critical', 'high', 'medium', 'low']
+          
+          errors = []
+          
+          for idx, inv in enumerate(invariants):
+              inv_id = inv.get('id', f'UNKNOWN-{idx}')
+              
+              # Check required fields
+              for field in required_inv_fields:
+                  if field not in inv:
+                      errors.append(f"Invariant {inv_id}: missing field '{field}'")
+              
+              # Validate ID format
+              if 'id' in inv and not inv['id'].startswith('INV-'):
+                  errors.append(f"Invariant {inv['id']}: ID must match pattern INV-###")
+              
+              # Validate category
+              if 'category' in inv and inv['category'] not in valid_categories:
+                  errors.append(f"Invariant {inv_id}: invalid category '{inv['category']}'")
+              
+              # Validate severity
+              if 'severity' in inv and inv['severity'] not in valid_severities:
+                  errors.append(f"Invariant {inv_id}: invalid severity '{inv['severity']}'")
+              
+              # Validate scope is array
+              if 'scope' in inv and not isinstance(inv['scope'], list):
+                  errors.append(f"Invariant {inv_id}: scope must be an array")
+          
+          if errors:
+              print("❌ INVARIANT STRUCTURE VALIDATION FAILED")
+              print("Failure Code: BASE120-SCHEMA-002")
+              for error in errors:
+                  print(f"  - {error}")
+              sys.exit(1)
+          
+          print(f"✓ All {len(invariants)} invariants are valid")
+          EOF
+          
+      - name: Validate version and frozen status
+        id: validate-version
+        run: |
+          echo "Validating version and frozen status..."
+          python3 - <<'EOF'
+          import yaml
+          import sys
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          errors = []
+          
+          # Check version
+          version = data.get('version')
+          if version != "1.0":
+              errors.append(f"Version must be '1.0', got '{version}'")
+          
+          # Check frozen status
+          frozen = data.get('frozen')
+          if frozen != True:
+              errors.append(f"Frozen must be true, got '{frozen}'")
+          
+          if errors:
+              print("❌ VERSION/FROZEN VALIDATION FAILED")
+              print("Failure Code: BASE120-SCHEMA-002")
+              for error in errors:
+                  print(f"  - {error}")
+              sys.exit(1)
+          
+          print("✓ Version is 1.0 and frozen is true")
+          EOF
+          
+      - name: Count and verify invariants
+        id: count-invariants
+        run: |
+          echo "Counting invariants..."
+          python3 - <<'EOF'
+          import yaml
+          
+          with open('base120-invariant-registry.yaml', 'r') as f:
+              data = yaml.safe_load(f)
+          
+          invariants = data.get('invariants', [])
+          
+          print(f"Total invariants: {len(invariants)}")
+          
+          # Count by category
+          categories = {}
+          for inv in invariants:
+              cat = inv.get('category', 'unknown')
+              categories[cat] = categories.get(cat, 0) + 1
+          
+          print("\nInvariants by category:")
+          for cat, count in sorted(categories.items()):
+              print(f"  {cat}: {count}")
+          
+          # Count by severity
+          severities = {}
+          for inv in invariants:
+              sev = inv.get('severity', 'unknown')
+              severities[sev] = severities.get(sev, 0) + 1
+          
+          print("\nInvariants by severity:")
+          for sev, count in sorted(severities.items()):
+              print(f"  {sev}: {count}")
+          EOF
+          
+      - name: Report validation success
+        run: |
+          echo "================================================"
+          echo "✓ Base120 v1.0 Schema Validation: PASSED"
+          echo "================================================"
+          echo "Registry: base120-invariant-registry.yaml"
+          echo "Version: 1.0"
+          echo "Status: FROZEN"
+          echo "Schema: VALID"
+          echo "================================================"

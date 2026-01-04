@@ -1,0 +1,103 @@
+# Machine-Readable Compliance Claim (MRCC)
+# Non-canonical Built-on-Base120 declaration
+# Format: Structured data for automated compliance verification
+
+claim_id: "MRCC-BASE120-001"
+claim_type: "built-on-base120"
+canonical_status: "non-canonical"
+version: "1.0"
+
+# Core claim
+claim:
+  statement: "This repository is built on Base120 v1.0 as immutable infrastructure"
+  base120_version: "1.0"
+  base120_file: "base120-invariant-registry.yaml"
+  base120_sha256: "6df3bd9f64693183ed2509e2ca6855a5690c721646e2357b088c3bd4d2cd88b1"
+  binding_status: "immutable"
+  binding_date: "2026-01-03T23:27:00Z"
+
+# Compliance attestation
+compliance:
+  immutability_enforced: true
+  hash_pinning_active: true
+  drift_detection_enabled: true
+  ci_validation_active: true
+  
+  # Invariant coverage
+  invariant_count: 15
+  invariant_categories:
+    - build_integrity
+    - artifact_integrity
+    - code_quality
+    - security
+    - access_control
+    - audit
+    - deployment
+  
+  # Critical invariants bound
+  critical_invariants_bound:
+    - INV-001  # Reproducible Build Requirement
+    - INV-003  # Artifact Signing Required
+    - INV-004  # Provenance Chain Required
+    - INV-007  # Dependency Scanning Required
+    - INV-008  # Secrets Detection Required
+    - INV-010  # Branch Protection Required
+    - INV-011  # Approval Requirement
+    - INV-012  # Change Attribution Required
+
+# Verification proofs
+verification:
+  hash_verification:
+    status: "enabled"
+    frequency: "on_every_commit"
+    failure_action: "block"
+    
+  schema_validation:
+    status: "enabled"
+    validator: "yaml_schema_validator"
+    failure_action: "block"
+    
+  drift_detection:
+    status: "enabled"
+    detection_method: "hash_comparison"
+    baseline_hash: "6df3bd9f64693183ed2509e2ca6855a5690c721646e2357b088c3bd4d2cd88b1"
+    failure_action: "block"
+
+# CI enforcement
+ci_enforcement:
+  workflow_enabled: true
+  checks:
+    - check: "hash_verification"
+      required: true
+      failure_code: "BASE120-HASH-001"
+    - check: "schema_validation"
+      required: true
+      failure_code: "BASE120-SCHEMA-002"
+    - check: "drift_detection"
+      required: true
+      failure_code: "BASE120-DRIFT-003"
+
+# Audit metadata
+audit:
+  claim_created: "2026-01-03T23:27:00Z"
+  claim_purpose: "Establish deterministic, audit-grade Base120 binding"
+  compliance_framework: "Base120 v1.0"
+  audit_trail_required: true
+  
+# Non-canonical notice
+notice:
+  canonical_status: "non-canonical"
+  rationale: |
+    This claim is maintained locally as a non-canonical reference.
+    It does not represent official Base120 certification.
+    It serves as a self-attestation of Base120 adherence.
+  authority: "repository_governance_team"
+  
+# References
+references:
+  base120_registry: "base120-invariant-registry.yaml"
+  dependency_declaration: "base120-dependency.yaml"
+  narrative_claim: "base120-narrative-claim.md"
+  governance_doc: "GOVERNANCE.md"
+  architecture_doc: "ARCHITECTURE.md"
+  current_state_doc: "_CURRENT_STATE.md"

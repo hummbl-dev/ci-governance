@@ -4,6 +4,17 @@
 
 This document defines the governance model for the CI Governance framework. It establishes principles, responsibilities, and operational guidelines for maintaining and using the governance policies.
 
+## Base120 v1.0 Binding Status
+
+**ACTIVE**: This repository is bound to Base120 v1.0 as immutable infrastructure.
+
+- **Version**: 1.0 (FROZEN)
+- **Hash**: `6df3bd9f64693183ed2509e2ca6855a5690c721646e2357b088c3bd4d2cd88b1`
+- **Status**: Immutable, hash-pinned, CI-enforced
+- **Binding Date**: 2026-01-03
+
+For technical details, see `ARCHITECTURE.md`. For current status, see `_CURRENT_STATE.md`.
+
 ## Governance Framework
 
 ### Three-Layer Model
@@ -88,6 +99,26 @@ To modify the registry:
 5. Maintain backward compatibility period
 
 **Timeline**: Major version changes require 180-day notice period.
+
+### CI Enforcement of Base120 Binding
+
+The Base120 v1.0 binding is enforced through automated CI checks:
+
+**Verification Checks**:
+- **Hash Verification**: SHA256 hash verified on every commit
+- **Schema Validation**: Registry structure validated against policy schema
+- **Drift Detection**: Unauthorized modifications detected automatically
+
+**Failure Codes**:
+- `BASE120-HASH-001`: Hash mismatch detected
+- `BASE120-SCHEMA-002`: Schema validation failed
+- `BASE120-DRIFT-003`: Drift from baseline detected
+- `BASE120-MISSING-004`: Registry file missing
+- `BASE120-FROZEN-005`: Frozen status violation
+
+**Enforcement Mode**: Blocking - all failures prevent merge
+
+For details, see `.github/workflows/base120-*.yml` files.
 
 ## Policy Extension Model
 

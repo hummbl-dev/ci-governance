@@ -1,0 +1,100 @@
+name: Base120 Hash Verification
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  verify-base120-hash:
+    name: Verify Base120 Immutable Hash
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Verify Base120 registry file exists
+        id: check-file
+        run: |
+          if [ ! -f "base120-invariant-registry.yaml" ]; then
+            echo "❌ FAILURE: Base120 registry file missing"
+            echo "Failure Code: BASE120-MISSING-004"
+            echo "Expected file: base120-invariant-registry.yaml"
+            exit 1
+          fi
+          echo "✓ Base120 registry file exists"
+          
+      - name: Calculate current hash
+        id: calculate-hash
+        run: |
+          CURRENT_HASH=$(sha256sum base120-invariant-registry.yaml | awk '{print $1}')
+          echo "current_hash=${CURRENT_HASH}" >> $GITHUB_OUTPUT
+          echo "Current hash: ${CURRENT_HASH}"
+          
+      - name: Load pinned hash from dependency declaration
+        id: load-pinned
+        run: |
+          PINNED_HASH=$(grep "sha256:" base120-dependency.yaml | awk '{print $2}' | tr -d '"')
+          echo "pinned_hash=${PINNED_HASH}" >> $GITHUB_OUTPUT
+          echo "Pinned hash: ${PINNED_HASH}"
+          
+      - name: Verify hash matches pinned value
+        id: verify-hash
+        run: |
+          CURRENT="${{ steps.calculate-hash.outputs.current_hash }}"
+          PINNED="${{ steps.load-pinned.outputs.pinned_hash }}"
+          
+          echo "=== Base120 Hash Verification ==="
+          echo "Pinned hash:  ${PINNED}"
+          echo "Current hash: ${CURRENT}"
+          echo ""
+          
+          if [ "${CURRENT}" != "${PINNED}" ]; then
+            echo "❌ HASH MISMATCH DETECTED"
+            echo "Failure Code: BASE120-HASH-001"
+            echo ""
+            echo "The Base120 registry has been modified!"
+            echo "This violates the immutable infrastructure binding."
+            echo ""
+            echo "Expected: ${PINNED}"
+            echo "Got:      ${CURRENT}"
+            echo ""
+            echo "Action required:"
+            echo "1. Revert changes to base120-invariant-registry.yaml"
+            echo "2. Base120 v1.0 is FROZEN and cannot be modified"
+            echo "3. For changes, propose a new major version (v2.0)"
+            exit 1
+          fi
+          
+          echo "✓ Hash verification passed"
+          echo "Base120 v1.0 integrity confirmed"
+          
+      - name: Verify frozen status
+        id: verify-frozen
+        run: |
+          FROZEN_STATUS=$(grep "^frozen:" base120-invariant-registry.yaml | awk '{print $2}')
+          
+          if [ "${FROZEN_STATUS}" != "true" ]; then
+            echo "❌ FROZEN STATUS VIOLATION"
+            echo "Failure Code: BASE120-FROZEN-005"
+            echo "The frozen status has been changed to: ${FROZEN_STATUS}"
+            echo "Base120 v1.0 must remain frozen: true"
+            exit 1
+          fi
+          
+          echo "✓ Frozen status verified: true"
+          
+      - name: Report verification success
+        run: |
+          echo "================================================"
+          echo "✓ Base120 v1.0 Hash Verification: PASSED"
+          echo "================================================"
+          echo "Registry: base120-invariant-registry.yaml"
+          echo "Version: 1.0"
+          echo "Status: FROZEN"
+          echo "Hash: ${{ steps.calculate-hash.outputs.current_hash }}"
+          echo "Binding: IMMUTABLE"
+          echo "================================================"
